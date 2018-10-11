@@ -22,22 +22,21 @@ fungen.write('source1:function:shape sin')
 
 little_board = cf.Little_Board('Dev10')
 
-frequencies_out = [None]*len(frequencies)
 fungen.write('OUTP1:STAT ON')
 time.sleep(1)
 for i in range(len(frequencies)):
     fungen.write(':frequency:fixed {}'.format(frequencies[i])) #sets function generator frequency
-    data = np.array(little_board.acquire(n_samples=1000, sampling_frequency=FS,ch0=False,ch1=True))
-    data -= data.mean()
-    signal_fft = np.abs(np.fft.fft(data))
-    signal_fft = signal_fft[:int(len(signal_fft)/2)]
-    frequencies_out[i] = np.argmax(signal_fft)*FS/len(signal_fft)/2
-    nq.plot(np.array(data))
-    nq.plot(np.linspace(0,FS/2,len(signal_fft)), signal_fft, title=str(1+i)+'_fft', xlabel='Frecuencia (Hz)')
+    data = np.array(little_board.acquire(n_samples=1000, sampling_frequency=FS,ch0=True,ch1=True))
+    signal_fft = [None]*len(data)
+    for k in range(len(data)):
+        data[k] -= data[k].mean()
+        signal_fft[k] = np.abs(np.fft.fft(data[k]))
+        signal_fft[k] = signal_fft[k][:int(len(signal_fft[k])/2)]
+        nq.plot(np.array(data[k]), title=str(i) + ' CH ' + str(k) + ' at freq=' + str(frequencies[i]))
+        nq.plot(np.linspace(0,FS/2,len(signal_fft[k])), signal_fft[k], title=str(1+i)+' FFT CH' + str(k) , xlabel='Frecuencia (Hz)')
+    nq.plot(np.linspace(0,FS/2,len(signal_fft[k])), [signal_fft[0], signal_fft[1]], legend=['CH0', 'CH1'], title=str(1+i)+' los dos canales juntos' , xlabel='Frecuencia (Hz)')
+
 fungen.write('OUTP1:STAT OFF')
 fungen.close()
-
-nq.plot(np.array(frequencies), np.array(frequencies_out), marker='.', xlabel='Frecuencia del generador (Hz)', ylabel='Frecuencia detectada (Hz)', title='Aliassing')
-
 nq.save_all(timestamp=True)
 
