@@ -1,39 +1,43 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct  9 17:49:05 2018
-
-@author: admin
-"""
-
-import nidaqmx
 import numpy as np
 import matplotlib.pyplot as plt
 import visa
-import datetime
+import time
+import cool_functions as cf
+import nicenquickplotlib as nq # https://github.com/SengerM/nicenquickplotlib
 
-FS = 1000
+nq.default_file_format = 'pdf'
+
+FS = 1537
 amplitude = 1.2
 offset = amplitude/2
 frequencies=np.linspace(1,3000,20)
 
 rm = visa.ResourceManager()
-fungen = rm.open_resource('USB0::0x0699::0x0346::C036493::INSTR')
+# rm.list_resources()
+fungen = rm.open_resource('USB0::0x0699::0x0346::C034167::INSTR')
 
 fungen.write('voltage {}'.format(amplitude))
 fungen.write('voltage:offset {}'.format(offset))
 fungen.write('source1:function:shape sin')
 
+little_board = cf.Little_Board('Dev10')
+
 frequencies_out = [None]*len(frequencies)
+fungen.write('OUTP1:STAT ON')
+time.sleep(1)
 for i in range(len(frequencies)):
     fungen.write(':frequency:fixed {}'.format(frequencies[i])) #sets function generator frequency
-    
-    with nidaqmx.Task() as task:
-        task.ai_channels.add_ai_voltage_chan("Dev4/ai0")
-        task.timing.cfg_samp_clk_timing(rate=FS)
-        data = task.read(number_of_samples_per_channel=1000)
-    frequencies_out[i] = np.argmax(np.abs(np.fft.fft(data)))*FS
-
-plt.plot(frequencies, frequencies_out)
-plt.show()
-
+    data = np.array(little_board.acquire(n_samples=1000, sampling_frequency=FS,ch0=False,ch1=True))
+    data -= data.mean()
+    signal_fft = np.abs(np.fft.fft(data))
+    signal_fft = signal_fft[:int(len(signal_fft)/2)]
+    frequencies_out[i] = np.argmax(signal_fft)*FS/len(signal_fft)/2
+    nq.plot(np.array(data))
+    nq.plot(np.linspace(0,FS/2,len(signal_fft)), signal_fft, title=str(1+i)+'_fft', xlabel='Frecuencia (Hz)')
+fungen.write('OUTP1:STAT OFF')
 fungen.close()
+
+nq.plot(np.array(frequencies), np.array(frequencies_out), marker='.', xlabel='Frecuencia del generador (Hz)', ylabel='Frecuencia detectada (Hz)', title='Aliassing')
+
+nq.save_all(timestamp=True)
+
