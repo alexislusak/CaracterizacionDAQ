@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import visa
 import time
 import cool_functions as cf
