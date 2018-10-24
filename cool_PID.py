@@ -3,15 +3,15 @@ import visa
 import time
 import cool_functions as cf
 import nicenquickplotlib as nq # https://github.com/SengerM/nicenquickplotlib
-
-REFERENCE_SIGNAL = 0
+ 
+REFERENCE_SIGNAL = 0.1
 SAMPLING_FREQUENCY = 1000
 GENERATOR_AMPLITUDE = 2.5 # volt
 N_CYCLES = 4
 N_SAMPLES_PER_BURST = 1000
 DUTY_CYCLE = 0.2
-KP = 0.01
-KI = 0.01
+KP = 1
+KI = 0
 KD = 0
 
 def measure_freq(fungen, little_board, sampling_frequency=SAMPLING_FREQUENCY):
@@ -41,7 +41,6 @@ fungen.write('voltage:offset {}'.format(GENERATOR_AMPLITUDE/2))
 fungen.write(':frequency:fixed {}'.format(freq)) #sets function generator frequency
 fungen.write('source1:function:shape PULS')
 fungen.write('source1:PULS:WIDT ' + str(DUTY_CYCLE/freq) + 's')
-fungen.write('source1:PULSE:DELAY ' + str(1/2/freq) + ' S')
 fungen.write('OUTP1:STAT ON')
 time.sleep(1)
 
@@ -49,10 +48,14 @@ error_integral = 0
 error_signal_n_menos_uno = 0
 error_signal = 0
 generator_phase = 1/2/freq
+fungen.write('source1:PULSE:DELAY ' + str(generator_phase) + ' S')
 while True:
-    data = np.array(little_board.acquire(sampling_frequency=freq*N_SAMPLES_PER_BURST))
+    data = np.array(little_board.acquire(n_samples=N_SAMPLES_PER_BURST,sampling_frequency=freq*N_SAMPLES_PER_BURST))
     data -= data.min()
     data /= data.max()
+    data = data.round()
+    data *= -1
+    data += 1
     duty = data.sum()/len(data)
     error_signal_n_menos_uno = error_signal
     error_signal = REFERENCE_SIGNAL - duty
@@ -60,15 +63,21 @@ while True:
     error_derivative = error_signal - error_signal_n_menos_uno
     
     generator_phase = KP*error_signal + KI*error_integral + KD*error_derivative
+    generator_phase += 1/2/freq
+    if generator_phase > 1/freq:
+        generator_phase=generator_phase%(1/freq)
+    if generator_phase < 0:
+        generator_phase=1/freq - np.abs(generator_phase)%(1/freq)
+        
+    fungen.write('source1:PULSE:DELAY ' + str(generator_phase) + ' S')
     
-    fungen.write('source1:PULSE:DELAY ' + str(generator_phase+1/2/freq) + ' S')
-    
+
     print('-----------')
     print('generator_phase = ' + str(generator_phase))
     print('Error signal = ' + str(error_signal))
     print('Error integral = ' + str(error_integral))
     print('Error derivative = ' + str(error_derivative))
-    
+        
     
     
 
