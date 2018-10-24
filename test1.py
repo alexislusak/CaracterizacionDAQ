@@ -10,7 +10,7 @@ offset = amplitude/2
 SIGNAL_FREQUENCY = 1e3 # Hz
 
 rm = visa.ResourceManager()
-# rm.list_resources()
+rm.list_resources()
 fungen = rm.open_resource('USB0::0x0699::0x0346::C034167::INSTR')
 
 fungen.write('voltage {}'.format(amplitude))
