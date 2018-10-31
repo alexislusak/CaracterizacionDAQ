@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Oct 31 11:09:08 2018
+
+@author: admin
+"""
+
 import numpy as np
 import visa
 import time
@@ -9,7 +16,6 @@ SAMPLING_FREQUENCY = 1000
 GENERATOR_AMPLITUDE = 2.5 # volt
 N_CYCLES = 4
 N_SAMPLES_PER_BURST = 1000
-DUTY_CYCLE = 0.5
 KP = 0.5
 KI = 0.01
 KD = 0
@@ -39,8 +45,7 @@ fungen.write('OUTP1:IMP INF') # Set the output impedance to zero (infinite load 
 fungen.write('voltage {}'.format(GENERATOR_AMPLITUDE))
 fungen.write('voltage:offset {}'.format(GENERATOR_AMPLITUDE/2))
 fungen.write(':frequency:fixed {}'.format(freq)) #sets function generator frequency
-fungen.write('source1:function:shape PULS')
-fungen.write('source1:PULS:WIDT ' + str(DUTY_CYCLE/freq) + 's')
+fungen.write('source1:function:SQU')
 fungen.write('OUTP1:STAT ON')
 time.sleep(1)
 
@@ -49,7 +54,7 @@ error_integral = 0
 error_signal_n_menos_uno = 0
 error_signal = 0
 generator_phase = 1/(2*freq)
-fungen.write('source1:PULSE:DELAY ' + str(generator_phase) + ' S')
+fungen.write("PHASE:ADJUST %DEG") %generator_phase
 while True:
     data = np.array(little_board.acquire(n_samples=N_SAMPLES_PER_BURST,sampling_frequency=freq*N_SAMPLES_PER_BURST))
     data -= data.min()
@@ -69,7 +74,7 @@ while True:
     if generator_phase < 0:
         generator_phase=1/freq - np.abs(generator_phase)%(1/freq)
         
-    fungen.write('source1:PULSE:DELAY ' + str(generator_phase) + ' S')
+    fungen.write("PHASE:ADJUST %DEG") %generator_phase
     
 
     print('-----------')
@@ -82,42 +87,3 @@ while True:
     
 
 fungen.close()
-
-#error_integral = 0
-#error_signal_n_menos_uno = 0
-#error_signal = 0
-#generator_phase = 1/2/freq
-#fungen.write('source1:PULSE:DELAY ' + str(generator_phase) + ' S')
-#while True:
-#    data = np.array(little_board.acquire(n_samples=N_SAMPLES_PER_BURST,sampling_frequency=freq*N_SAMPLES_PER_BURST))
-#    data -= data.min()
-#    data /= data.max()
-#    data = data.round()
-#    data *= -1
-#    data += 1
-#    duty = data.sum()/len(data)
-#    error_signal_n_menos_uno = error_signal
-#    error_signal = REFERENCE_SIGNAL - duty
-#    error_integral += error_signal
-#    error_derivative = error_signal - error_signal_n_menos_uno
-#    
-#    generator_phase = KP*error_signal + KI*error_integral + KD*error_derivative
-#    generator_phase += 1/2/freq
-#    if generator_phase > 1/freq:
-#        generator_phase=generator_phase%(1/freq)
-#    if generator_phase < 0:
-#        generator_phase=1/freq - np.abs(generator_phase)%(1/freq)
-#        
-#    fungen.write('source1:PULSE:DELAY ' + str(generator_phase) + ' S')
-#    
-#
-#    print('-----------')
-#    print('generator_phase = ' + str(generator_phase))
-#    print('Error signal = ' + str(error_signal))
-#    print('Error integral = ' + str(error_integral))
-#    print('Error derivative = ' + str(error_derivative))
-#        
-#    
-#    
-#
-#fungen.close()
