@@ -25,10 +25,12 @@ def measure_freq(fungen, little_board, sampling_frequency=SAMPLING_FREQUENCY):
     fungen.write('voltage 20e-3')
     fungen.write('voltage:offset {}'.format(GENERATOR_AMPLITUDE))
     fungen.write('source1:function:shape squ')
+    statefungen=fungen.write('OUTPut[1|2][:STATe]?')
     fungen.write('OUTP1:STAT ON')
     time.sleep(1)
     data = np.array(little_board.acquire(sampling_frequency=sampling_frequency))
-    fungen.write('OUTP1:STAT OFF')
+    fungen.write('OUTP1:STAT %' % statefungen)
+#    fungen.write('OUTP1:STAT OFF')
     data -= data.mean()
     signal_fft = np.abs(np.fft.fft(data))
     signal_fft = signal_fft[:int(len(signal_fft)/2)]
@@ -46,6 +48,7 @@ fungen.write('voltage {}'.format(GENERATOR_AMPLITUDE))
 fungen.write('voltage:offset {}'.format(GENERATOR_AMPLITUDE/2))
 fungen.write(':frequency:fixed {}'.format(freq)) #sets function generator frequency
 fungen.write('source1:function:SQU')
+statefungen=fungen.write('OUTPut[1|2][:STATe]?')
 fungen.write('OUTP1:STAT ON')
 time.sleep(1)
 
@@ -69,10 +72,10 @@ while True:
     error_derivative = error_signal - error_signal_n_menos_uno
     
     generator_phase = 1/(2*freq) - (KP*error_signal + KI*error_integral + KD*error_derivative)
-    if generator_phase > 1/freq:
-        generator_phase=generator_phase%(1/freq)
-    if generator_phase < 0:
-        generator_phase=1/freq - np.abs(generator_phase)%(1/freq)
+#    if generator_phase > 1/freq:
+#        generator_phase=generator_phase%(1/freq)
+#    if generator_phase < 0:
+#        generator_phase=1/freq - np.abs(generator_phase)%(1/freq)
         
     fungen.write("PHASE:ADJUST %DEG") %generator_phase
     
@@ -83,7 +86,7 @@ while True:
     print('Error integral = ' + str(error_integral))
     print('Error derivative = ' + str(error_derivative))
         
-    
+fungen.write('OUTP1:STAT %' % statefungen)
     
 
 fungen.close()
