@@ -28,4 +28,5 @@ time_axis = np.linspace(0,N_SAMPLES/SAMPLING_FREQUENCY,N_SAMPLES)
 nq.plot(x=time_axis, y=np.array(data), xlabel='Tiempo (s)')
 
 nq.save_all(timestamp=True, image_format='pdf', csv=True)
+
 nq.show()

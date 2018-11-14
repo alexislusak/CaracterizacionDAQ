@@ -32,4 +32,3 @@ fungen.close()
 
 nq.save_all(timestamp='now', image_format='pdf', csv=True)
 nq.show()
-
